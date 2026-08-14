@@ -8,7 +8,7 @@
 ## 原理
 - 后端：Python `aiohttp`（`server.py`），监听 `$PORT`（Render 自动注入）。
 - 种子视频：构建镜像时由 `fetch_seeds.py` 从公有源自动拉取并烤进镜像，**无需手动上传 442MB**。
-- 运行期新增视频：默认写在容器可写层；**若挂载 Persistent Disk 到 `/data` 则持久化**（见下）。
+- 运行期新增视频：下载后自动上传到 **S3 兼容对象存储**（B2/R2/S3 等，需配置环境变量），**重启/重新部署都不丢**；未配置时降级存本地（重启会丢）。
 - 下载引擎：B站 `yt-dlp`、抖音 `playwright` + `ffmpeg` 合并音视频。
 
 ## 部署步骤（约 10–20 分钟，全程免费）
@@ -26,10 +26,37 @@
 5. 等**首次构建**（镜像装 ffmpeg + Chromium + 下载 12 视频，约 5–15 分钟）→ 得到
    `https://video-aggregator.onrender.com`，打开即可用。
 
-## 可选：让「新增的视频」重启/休眠后不丢
-Render **免费版不带持久盘**，运行期一键汇总新增的视频会随实例休眠/重启丢失（12 个种子因烤在镜像里不受影响）。
-如需持久化：Render 服务里加一个 **Persistent Disk** 挂载到容器路径 `/data`（需升级到付费套餐，约 $0.02/GB·月）。
-服务检测到 `/data` 存在会自动把新增视频与清单写入其中。
+## 让「新增的视频」重启/重新部署后不丢（强烈建议，免费）
+Render **免费版不带持久盘**，若不配置外部存储，运行期一键汇总新增的视频会随实例回收/重新部署丢失
+（12 个种子因烤在镜像里不受影响）。本服务支持把新增视频自动上传到**任意 S3 兼容对象存储**，
+持久化且对所有人可见。推荐 **Backblaze B2 免费额度（10GB，免信用卡）**。
+
+### 第一步：建一个免费 B2 桶（约 3 分钟）
+1. 注册 https://www.backblazeb2.com （邮箱即可，**免费额度不需要信用卡**）。
+2. 左侧 **Buckets** → **Create a Bucket** → 取名如 `video-aggregator` → 选 **Public**（公开读，视频才能直接播）→ 创建。
+3. 进入桶 → **Bucket Settings** 记下 **Endpoint**（形如 `https://s3.us-west-004.backblazeb2.com`）。
+4. 左侧 **Application Keys** → **Add a New Application Key**：
+   - Name 随意；**Allow Access to Bucket(s)** 选刚建的桶；**Type of Access** 选 **Read and Write**；
+   - 其余默认 → **Create**。页面会显示 `keyID`（= 访问密钥 ID）和 `applicationKey`（= 密钥），**只显示一次，复制保存**。
+
+### 第二步：在 Render 配置环境变量
+打开 Render 该服务 → **Environment** → 添加以下变量（名字必须一致）→ **Save Changes**（会触发重新部署）：
+
+| 变量名 | 值 |
+|---|---|
+| `S3_ENDPOINT` | 桶的 Endpoint，如 `https://s3.us-west-004.backblazeb2.com` |
+| `S3_BUCKET` | 桶名，如 `video-aggregator` |
+| `S3_REGION` | 桶所在区域，如 `us-west-004`（B2 也可填 `auto`） |
+| `S3_ACCESS_KEY` | 上面的 `keyID` |
+| `S3_SECRET_KEY` | 上面的 `applicationKey` |
+| `S3_PUBLIC_URL` | 桶公开访问基址，如 `https://<桶名>.s3.us-west-004.backblazeb2.com`（与 Endpoint 二选一填，优先用这个） |
+
+> 这套变量是**通用 S3 协议**，所以 Cloudflare R2、AWS S3、阿里云 OSS、腾讯云 COS 等任意一家都能用，
+> 只要换成对应 Endpoint / 区域 / 密钥即可。没有配置这些变量时，服务自动降级（新增视频存本地、重启会丢），**部署不会失败**。
+
+### 验证
+配置并重新部署后，到站点一键汇总一个 B站链接，等待出现新卡片；然后到 Render 手动 **Restart** 该服务（或等其休眠唤醒），
+刷新页面——新视频仍在，即说明已成功持久化到 B2。
 
 ## 使用须知
 - **免费实例闲置约 15 分钟会休眠**，下次访问需约 30–60 秒唤醒（页面先转圈）。这是免费代价。

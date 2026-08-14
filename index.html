@@ -203,11 +203,10 @@
 <p class="subtitle">AI 影像狂飙季 参考视频集合 ＇ 12 部作品 + 可继续新增</p>
 
 <section class="aggregate">
-  <h2>➕ 一键汇总视频 <span id="modeTag" class="mode-tag mode-static">本机暂存模式</span></h2>
+  <h2>➕ 一键汇总视频 <span id="modeTag" class="mode-tag mode-backend">云端实时聚合</span></h2>
   <p class="agg-hint">
-    粘贴抖音 / B站 视频链接（每行一个，或逗号分隔），点击「一键汇总」，即可加入下方「网址汇总」立即观看。<br>
-    <span style="color:#ffb86c">在线版说明：新增视频暂存在你当前浏览器（localStorage），仅你自己可见、刷新不丢；B站用官方内嵌播放器、抖音跳转原链接。<br>
-    若想让<b>所有人</b>都能看到并<b>离线保存</b>，请用本机 <code>VideoAggregator.exe</code>（或 <code>python server.py</code>）汇总，再通知我重新部署本页。</span>
+    粘贴抖音 / B站 视频链接（每行一个，或逗号分隔），点击「一键汇总」，即可加入下方「网址汇总」立即观看，<b>所有人都能看到并永久保存</b>。<br>
+    <span style="color:#7ee0a8">云端实时聚合：新增视频上传到对象存储，服务器重新部署 / 重启都不会丢失；12 个种子视频已内置。B站用 yt-dlp 下载、抖音用 Playwright 下载，均带声音。</span>
   </p>
   <textarea id="aggInput" placeholder="https://v.douyin.com/xxxx/&#10;https://www.bilibili.com/video/BVxxxx"></textarea>
   <div class="agg-actions">
@@ -267,7 +266,7 @@
 <div class="footer">
   风格调研 2.0 · 自动整理于 2026-08-13<br>
   封面图源自抖音分享页播放器截图<br>
-  <span style="color:#6b7280">在线版为静态展示：种子视频（12 部）已内嵌可播放；新增视频由本机浏览器暂存。实时下载请在本机运行服务：<code>cd webapp &amp;&amp; python server.py</code>（默认 http://127.0.0.1:8080/）</span>
+  <span style="color:#6b7280">云端实时聚合版：种子视频（12 部）已内置可播放；新增视频上传到对象存储并持久化，服务器重启 / 重新部署均不丢失。</span>
 </div>
 
 
@@ -333,9 +332,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 4000);
   }
 
+  function mediaSrc(e) {
+    var f = e.url || e.file || '';
+    return (/^https?:\/\//i.test(f)) ? f : '/media/' + f;
+  }
+  function posterSrc(e) {
+    if (!e.poster) return '';
+    var p = e.poster;
+    return (/^https?:\/\//i.test(p)) ? p : '/media/' + p;
+  }
+
   function makeCardHtml(e) {
-    var poster = e.poster ? '/media/' + e.poster : '';
-    return '<video class="card-video" preload="none" src="/media/' + e.file + '"' +
+    var src = mediaSrc(e);
+    var poster = posterSrc(e);
+    return '<video class="card-video" preload="none" src="' + src + '"' +
       (poster ? ' poster="' + poster + '"' : '') + '></video>' +
       '<div class="card-body">' +
         '<div class="card-label">' + escapeHtml(e.label) + '</div>' +

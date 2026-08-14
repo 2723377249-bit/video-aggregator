@@ -2,7 +2,7 @@
 import os, json, uuid, mimetypes, asyncio
 from aiohttp import web
 import downloader
-import cos_store
+import s3_store
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 种子视频在构建时烤进镜像（./media），运行期新增的视频优先存到持久卷 /data
@@ -27,30 +27,55 @@ if RUNTIME_JSON != SEED_JSON and not os.path.exists(RUNTIME_JSON):
         print("init runtime videos.json failed:", e)
 
 
-def load_videos():
-    if cos_store.enabled():
-        t = cos_store.get_text("videos.json")
-        if t:
-            try:
-                return json.loads(t)
-            except Exception:
-                pass
-    if not os.path.exists(VIDEOS_JSON):
-        return []
+def load_seed():
+    """烤进镜像的 12 个种子（重启永丢不了）。"""
     try:
-        return json.load(open(VIDEOS_JSON, encoding="utf-8"))
+        return json.load(open(SEED_JSON, encoding="utf-8"))
     except Exception:
         return []
 
 
-def save_videos(videos):
-    json.dump(videos, open(VIDEOS_JSON, "w", encoding="utf-8"),
-              ensure_ascii=False, indent=2)
-    if cos_store.enabled():
+def load_aggregated():
+    """运行期新增的视频：优先从 S3 持久化读取，否则读本地文件（Render 免费版重启会丢）。"""
+    if s3_store.enabled():
+        return s3_store.load_aggregated()
+    agg_path = os.path.join(SEED_MEDIA, "aggregated.json")
+    if os.path.exists(agg_path):
         try:
-            cos_store.put_json("videos.json", videos)
+            return json.load(open(agg_path, encoding="utf-8"))
+        except Exception:
+            return []
+    return []
+
+
+def save_aggregated(entries):
+    if s3_store.enabled():
+        try:
+            s3_store.save_aggregated(entries)
+            return
         except Exception as e:
-            print("COS put videos.json failed:", e)
+            print("s3 save aggregated failed, fallback local:", e)
+    agg_path = os.path.join(SEED_MEDIA, "aggregated.json")
+    json.dump(entries, open(agg_path, "w", encoding="utf-8"),
+              ensure_ascii=False, indent=2)
+
+
+def load_videos():
+    """种子 + 聚合（去重）合并成完整清单。"""
+    seed = load_seed()
+    agg = load_aggregated()
+    seed_keys = {e.get("id") or e.get("file") for e in seed}
+    merged = list(seed)
+    for e in agg:
+        k = e.get("id") or e.get("file")
+        if k not in seed_keys:
+            merged.append(e)
+    return merged
+
+
+def save_videos(videos):
+    """只持久化「非种子」的聚合部分（种子烤在镜像里，无需存）。"""
+    save_aggregated([e for e in videos if not e.get("seed")])
 
 
 def _mime(name):
@@ -167,22 +192,25 @@ async def aggregate_handler(request):
                 "source": kind,
                 "seed": False,
             }
-            if cos_store.enabled():
-                try:
-                    entry["url"] = cos_store.upload_file(out, "media/" + fn)
+            # 聚合视频持久化到 S3（避免 Render 免费版重启/重新部署丢数据）
+            try:
+                if s3_store.enabled():
+                    entry["file"] = s3_store.upload_file(
+                        out, s3_store.media_key(fn), "video/mp4")
                     if poster and os.path.isfile(poster):
-                        entry["posterUrl"] = cos_store.upload_file(
-                            poster, "media/" + os.path.basename(poster))
+                        entry["poster"] = s3_store.upload_file(
+                            poster, s3_store.media_key(os.path.basename(poster)),
+                            "image/jpeg")
+                    # 上传成功后再删除本地临时文件
                     for p in (out, poster):
                         if p and os.path.isfile(p):
                             try:
                                 os.remove(p)
                             except OSError:
                                 pass
-                except Exception as e:
-                    entry.pop("url", None)
-                    entry.pop("posterUrl", None)
-                    print("COS upload failed, fallback local media:", e)
+            except Exception as e:
+                # 上传失败：保留本地文件，entry.file 仍是文件名，由本服务 /media 提供
+                print("s3 upload failed, keep local media:", e)
             videos = load_videos()
             videos.append(entry)
             save_videos(videos)
