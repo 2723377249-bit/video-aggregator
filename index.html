@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>风格调研 · 视频汇总</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    line-height: 1.7;
+    padding: 40px 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 8px;
+    color: #f0f6fc;
+    letter-spacing: 2px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #8b949e;
+    font-size: 0.95em;
+    margin-bottom: 50px;
+  }
+  h2 {
+    font-size: 1.5em;
+    color: #f0f6fc;
+    border-left: 4px solid #58a6ff;
+    padding-left: 16px;
+    margin: 50px 0 24px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 28px;
+  }
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform .25s ease, box-shadow .25s ease,
+                border-color .25s ease;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 36px rgba(88,166,255,.12);
+    border-color: #58a6ff55;
+  }
+  .card-body { padding: 18px 20px 16px; }
+  .card-label {
+    font-weight: 700;
+    font-size: 1.08em;
+    color: #f0f6fc;
+    margin-bottom: 6px;
+  }
+  .card-desc {
+    font-size: 0.87em;
+    color: #8b949e;
+    margin-bottom: 14px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #58a6ff;
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: #58a6ff15;
+    border: 1px solid #58a6ff30;
+    transition: all .2s ease;
+  }
+  .card-link:hover { background: #58a6ff28; border-color: #58a6ff60; }
+  .card-link::before { content: "\1F517"; font-size: 1.05em; }
+
+  .sub-section {
+    font-size: 1.18em;
+    color: #e6edf3;
+    margin: 30px 0 16px;
+    padding-left: 14px;
+    border-left: 3px solid #a371f7;
+    font-weight: 700;
+  }
+  .research-list { list-style: none; counter-reset: rc; }
+  .research-item {
+    counter-increment: rc;
+    position: relative;
+    padding: 16px 20px 16px 52px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    transition: border-color .2s;
+  }
+  .research-item:hover { border-color: #58a6ff44; }
+  .research-item::before {
+    content: counter(rc);
+    position: absolute; left: 16px; top: 17px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #58a6ff, #a371f7);
+    color: #fff; font-size: 0.78em; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .platform-name { font-weight: 700; color: #f0f6fc; font-size: 0.98em; }
+  .platform-link {
+    font-weight: 400; font-size: 0.82em; color: #58a6ff;
+    text-decoration: none; margin-left: 6px; word-break: break-all;
+  }
+  .platform-link:hover { text-decoration: underline; }
+  .platform-note { color: #8b949e; font-size: 0.92em; margin-top: 2px; }
+
+  .footer {
+    text-align: center; color: #484f58; font-size: 0.82em;
+    margin-top: 60px; padding-top: 24px; border-top: 1px solid #21262d;
+  }
+
+  .card-video {
+    width:100%; display:block; margin-top:12px; border-radius:10px;
+    background:#000; aspect-ratio:16/9; object-fit:contain;
+    border:1px solid var(--border);
+  }
+  .card-local { margin-top:10px; font-size:12.5px; color:#7ee0a8; letter-spacing:.5px; }
+  .card-local.added { color:#ffb86c; }
+
+  .video-wrap { position:relative; margin-top:12px; }
+  .card-video { margin-top:0 !important; }
+  .play-overlay {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; background:rgba(0,0,0,.28); border-radius:10px; z-index:2;
+  }
+  .play-overlay span {
+    width:66px; height:66px; border-radius:50%; background:rgba(0,0,0,.6);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:30px; line-height:1; pointer-events:none;
+  }
+  .video-error {
+    display:none; margin-top:8px; padding:16px 18px; background:#2a1414;
+    color:#ffb4b4; border:1px solid #5a2a2a; border-radius:10px;
+    font-size:13px; line-height:1.7;
+  }
+
+  .video-lightbox {
+    position:fixed; inset:0; background:rgba(0,0,0,.92);
+    display:none; align-items:center; justify-content:center; z-index:9999;
+  }
+  .video-lightbox.open { display:flex; }
+  .video-lightbox video {
+    max-width:92vw; max-height:86vh; width:auto; height:auto;
+    background:#000; border-radius:8px; outline:none;
+  }
+  .video-lightbox .lb-close {
+    position:absolute; top:18px; right:22px; width:44px; height:44px;
+    border-radius:50%; background:rgba(255,255,255,.16); color:#fff;
+    border:none; font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .video-lightbox .lb-close:hover { background:rgba(255,255,255,.32); }
+  .video-lightbox .lb-hint {
+    position:absolute; bottom:18px; left:0; right:0; text-align:center;
+    color:#bbb; font-size:13px;
+  }
+
+  .card-iframe {
+    width:100%; aspect-ratio:16/9; border:0; display:block; border-radius:10px; margin-top:12px; background:#000;
+  }
+
+  /* ---- 一键汇总面板 ---- */
+  .aggregate{background:linear-gradient(135deg,#1f2a44,#2a1f3a);border:1px solid #3a3f5a;border-radius:14px;padding:18px 20px;margin:8px 0 22px;color:#e8ecf5;}
+  .aggregate h2{margin:0 0 6px;font-size:20px;color:#fff;border:none;padding:0;}
+  .agg-hint{margin:0 0 12px;font-size:13px;color:#aab3c8;line-height:1.6;}
+  #aggInput{width:100%;min-height:92px;resize:vertical;box-sizing:border-box;background:#0e1320;border:1px solid #3a3f5a;border-radius:10px;color:#e8ecf5;padding:12px;font-size:13px;line-height:1.6;font-family:inherit;}
+  .agg-actions{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap;}
+  #aggBtn{background:linear-gradient(135deg,#5b8cff,#8a5bff);border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:10px;cursor:pointer;transition:.15s;}
+  #aggBtn:hover{filter:brightness(1.1);}
+  #aggBtn:disabled{opacity:.6;cursor:not-allowed;}
+  #aggStatus{font-size:13px;color:#9fe6c0;}
+  .agg-progress{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+  .agg-row{font-size:13px;color:#cdd6ea;background:#0e1320;border:1px solid #2a3050;border-radius:8px;padding:8px 12px;word-break:break-all;}
+  .agg-clear{margin-left:auto;font-size:12px;color:#8b9bbd;text-decoration:underline;cursor:pointer;background:none;border:none;}
+  .mode-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
+  .mode-static{background:#3a2f1f;color:#ffb86c;}
+  .mode-backend{background:#1f3a2a;color:#7ee0a8;}
+</style>
+</head>
+<body>
+
+<h1>✨ 风格调研 · 视频汇总</h1>
+<p class="subtitle">AI 影像狂飙季 参考视频集合 ＇ 12 部作品 + 可继续新增</p>
+
+<section class="aggregate">
+  <h2>➕ 一键汇总视频 <span id="modeTag" class="mode-tag mode-static">本机暂存模式</span></h2>
+  <p class="agg-hint">
+    粘贴抖音 / B站 视频链接（每行一个，或逗号分隔），点击「一键汇总」，即可加入下方「网址汇总」立即观看。<br>
+    <span style="color:#ffb86c">在线版说明：新增视频暂存在你当前浏览器（localStorage），仅你自己可见、刷新不丢；B站用官方内嵌播放器、抖音跳转原链接。<br>
+    若想让<b>所有人</b>都能看到并<b>离线保存</b>，请用本机 <code>VideoAggregator.exe</code>（或 <code>python server.py</code>）汇总，再通知我重新部署本页。</span>
+  </p>
+  <textarea id="aggInput" placeholder="https://v.douyin.com/xxxx/&#10;https://www.bilibili.com/video/BVxxxx"></textarea>
+  <div class="agg-actions">
+    <button id="aggBtn">🚀 一键汇总</button>
+    <span id="aggStatus"></span>
+    <button id="aggClear" class="agg-clear">清空本机新增</button>
+  </div>
+  <div id="aggProgress" class="agg-progress"></div>
+</section>
+
+<h2>🎥 网址汇总</h2>
+<div class="grid" id="videoGrid"></div>
+<h2>🧠 AI 平台调研</h2>
+<h3 class="sub-section">📝 脚本写作</h3>
+<ul class="research-list">
+  <li class="research-item">
+    <div class="platform-name">Kimi <a class="platform-link" href="https://kimi.moonshot.cn" target="_blank" rel="noopener">https://kimi.moonshot.cn</a></div>
+    <div class="platform-note">写的提示词在镜头切换上比较有意思</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">GPT <a class="platform-link" href="https://chat.openai.com" target="_blank" rel="noopener">https://chat.openai.com</a></div>
+    <div class="platform-note">中规中矩 但故事走向比较文艺 需要手动把控故事走向</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">WorkBuddy <a class="platform-link" href="https://www.workbuddy.ai" target="_blank" rel="noopener">https://www.workbuddy.ai</a></div>
+    <div class="platform-note">很多提示词ai听不太懂（可能是文学性太强了）手动调整后会从一个极端变成另一个极端 但是是所有ai里写的最具观赏性的</div>
+  </li>
+</ul>
+<h3 class="sub-section">🎬 视频生成</h3>
+<ul class="research-list">
+  <li class="research-item">
+    <div class="platform-name">MiniMax <a class="platform-link" href="https://www.minimax.io" target="_blank" rel="noopener">https://www.minimax.io</a></div>
+    <div class="platform-note">相较于LibTV人物可能还是比较呆板 但特写镜头表现上强于LibTV</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">可灵3.0 omni <a class="platform-link" href="https://klingai.com" target="_blank" rel="noopener">https://klingai.com</a></div>
+    <div class="platform-note">目前看到的最不呆板人物最有情绪的 甚至可以有演技</div>
+  </li>
+</ul>
+<h3 class="sub-section">🖼 图片生成</h3>
+<ul class="research-list">
+  <li class="research-item">
+    <div class="platform-name">即梦 <a class="platform-link" href="https://jimeng.jianying.com" target="_blank" rel="noopener">https://jimeng.jianying.com</a></div>
+    <div class="platform-note">需要长篇幅的提示词去把控画面效果 如果生成的是古风小生（不加服装发型提示词的话）会出来一个很命苦的老农民 不过胜在便宜 一张图只要3积分 可以用来出场景参考图</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">Midjourney <a class="platform-link" href="https://www.midjourney.com" target="_blank" rel="noopener">https://www.midjourney.com</a></div>
+    <div class="platform-note">可能是目前最好的场景生成ai 质量非常高 不过不好把控 思维发散太强了</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">WorkBuddy & MJ <a class="platform-link" href="https://www.workbuddy.ai" target="_blank" rel="noopener">https://www.workbuddy.ai</a></div>
+    <div class="platform-note">如果用英文提示词的效果会强于中文提示词</div>
+  </li>
+</ul>
+
+
+<div class="footer">
+  风格调研 2.0 · 自动整理于 2026-08-13<br>
+  封面图源自抖音分享页播放器截图<br>
+  <span style="color:#6b7280">在线版为静态展示：种子视频（12 部）已内嵌可播放；新增视频由本机浏览器暂存。实时下载请在本机运行服务：<code>cd webapp &amp;&amp; python server.py</code>（默认 http://127.0.0.1:8080/）</span>
+</div>
+
+
+<script>
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+document.addEventListener('DOMContentLoaded', function () {
+  // ---- 灯箱 ----
+  var lb = document.createElement('div');
+  lb.className = 'video-lightbox';
+  lb.innerHTML = '<button class="lb-close" title="关闭">✕</button>' +
+                 '<video id="lbVideo" controls playsinline></video>' +
+                 '<div class="lb-hint">按 ESC 或点击空白处关闭</div>';
+  document.body.appendChild(lb);
+  var lbv = lb.querySelector('#lbVideo');
+  var lbClose = lb.querySelector('.lb-close');
+
+  function openLb(src, poster) {
+    lbv.src = src;
+    if (poster) lbv.poster = poster;
+    lb.classList.add('open');
+    var p = lbv.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+  function closeLb() {
+    lb.classList.remove('open');
+    lbv.pause();
+    lbv.removeAttribute('src');
+    lbv.load();
+  }
+  lbClose.addEventListener('click', closeLb);
+  lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+
+  function wireVideo(v) {
+    var wrap = document.createElement('div');
+    wrap.className = 'video-wrap';
+    v.parentNode.insertBefore(wrap, v);
+    wrap.appendChild(v);
+
+    var ov = document.createElement('div');
+    ov.className = 'play-overlay';
+    ov.innerHTML = '<span>▶</span>';
+    wrap.appendChild(ov);
+
+    var err = document.createElement('div');
+    err.className = 'video-error';
+    err.textContent = '⚠️ 视频加载失败：若你是在应用预览面板打开的，请改用本地浏览器访问本服务地址。';
+    wrap.appendChild(err);
+
+    function hideOv() { ov.style.display = 'none'; }
+    ov.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (v.error) { err.style.display = 'block'; return; }
+      openLb(v.src, v.poster);
+    });
+    v.addEventListener('click', function () {
+      if (v.paused) openLb(v.src, v.poster);
+    });
+    v.addEventListener('error', function () { hideOv(); err.style.display = 'block'; });
+    setTimeout(function () {
+      if (v.readyState === 0 && v.networkState === 3) { hideOv(); err.style.display = 'block'; }
+    }, 4000);
+  }
+
+  function makeCardHtml(e) {
+    var poster = e.poster ? '/media/' + e.poster : '';
+    return '<video class="card-video" preload="none" src="/media/' + e.file + '"' +
+      (poster ? ' poster="' + poster + '"' : '') + '></video>' +
+      '<div class="card-body">' +
+        '<div class="card-label">' + escapeHtml(e.label) + '</div>' +
+        '<div class="card-desc">' + escapeHtml(e.desc) + '</div>' +
+        '<div class="card-local">▶ 已下载到本地，点击上方播放器观看</div>' +
+      '</div>';
+  }
+
+  function makeAddedCard(e) {
+    if (e.embed === 'bili') {
+      return '<div class="video-wrap"><iframe class="card-iframe" src="' + e.embedSrc +
+        '" scrolling="no" allowfullscreen="true"></iframe></div>' +
+        '<div class="card-body">' +
+          '<div class="card-label">' + escapeHtml(e.label) + '</div>' +
+          '<div class="card-desc">' + escapeHtml(e.desc) + '</div>' +
+          '<div class="card-local added">▶ B站在线播放（本机暂存）</div>' +
+        '</div>';
+    }
+    // link-out (douyin 等)
+    return '<div class="card-body">' +
+      '<div class="card-label">' + escapeHtml(e.label) + '</div>' +
+      '<div class="card-desc">' + escapeHtml(e.desc) + '</div>' +
+      '<a class="card-link" href="' + e.url + '" target="_blank" rel="noopener">打开原视频</a>' +
+      '<div class="card-local added">本机暂存 · 跳转原链接观看</div>' +
+    '</div>';
+  }
+
+  function renderList(list) {
+    var grid = document.getElementById('videoGrid');
+    grid.innerHTML = '';
+    list.forEach(function (e) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      if (e.added) {
+        card.innerHTML = makeAddedCard(e);
+      } else {
+        card.innerHTML = makeCardHtml(e);
+        var v = card.querySelector('video');
+        if (v) wireVideo(v);
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  // ---- localStorage 新增（静态模式） ----
+  var LS_KEY = 'style_research_added_videos';
+  function loadAdded() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveAdded(a) { localStorage.setItem(LS_KEY, JSON.stringify(a)); }
+
+  function parseBiliBV(url) {
+    var m = url.match(/BV[0-9A-Za-z]+/);
+    return m ? m[0] : null;
+  }
+  function classify(raw) {
+    var u = raw.trim();
+    if (!u) return null;
+    var bv = parseBiliBV(u);
+    if (bv) {
+      return { kind: 'bili', label: 'B站视频 ' + bv, desc: u,
+        embedSrc: 'https://player.bilibili.com/player.html?bvid=' + bv + '&page=1&high_quality=1&autoplay=0' };
+    }
+    if (/douyin\.com|tiktok\.com/i.test(u) || /^https?:\/\//.test(u)) {
+      return { kind: 'link', label: '抖音 / 外链视频', desc: u, url: u };
+    }
+    return null;
+  }
+
+  // ---- 聚合按钮（按模式分流） ----
+  var aggBtn = document.getElementById('aggBtn');
+  var aggInput = document.getElementById('aggInput');
+  var aggStatus = document.getElementById('aggStatus');
+  var aggProgress = document.getElementById('aggProgress');
+  var aggClear = document.getElementById('aggClear');
+  var modeTag = document.getElementById('modeTag');
+  var hasBackend = false;
+  var seedList = [];
+
+  function setStatus(t) { aggStatus.textContent = t; }
+
+  // 静态模式：本机暂存
+  function setupStaticAdd() {
+    modeTag.textContent = '本机暂存模式';
+    modeTag.className = 'mode-tag mode-static';
+    aggClear.style.display = '';
+
+    aggBtn.addEventListener('click', function () {
+      var raw = aggInput.value.trim();
+      if (!raw) { setStatus('请先粘贴视频链接'); return; }
+      var lines = raw.split(/[\n,，]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+      var added = loadAdded();
+      var ok = 0, skip = 0, bad = 0;
+      aggProgress.innerHTML = '';
+      lines.forEach(function (line) {
+        var info = classify(line);
+        if (!info) { bad++; aggProgress.innerHTML += '<div class="agg-row">❌ 不支持：' + escapeHtml(line) + '</div>'; return; }
+        // 去重
+        if (added.some(function (a) { return a.url === info.url || (a.embedSrc && a.embedSrc === info.embedSrc); })) { skip++; return; }
+        var entry = { added: true, label: info.label, desc: info.desc };
+        if (info.kind === 'bili') entry.embed = 'bili', entry.embedSrc = info.embedSrc;
+        else entry.embed = 'link', entry.url = info.url;
+        added.push(entry);
+        ok++;
+        aggProgress.innerHTML += '<div class="agg-row">✅ ' + escapeHtml(info.label) + '</div>';
+      });
+      saveAdded(added);
+      renderList(seedList.concat(added));
+      setStatus('已添加 ' + ok + ' 个（跳过重复 ' + skip + '，不支持 ' + bad + '）· 仅保存在本浏览器');
+      aggInput.value = '';
+    });
+
+    aggClear.addEventListener('click', function () {
+      saveAdded([]);
+      renderList(seedList);
+      aggProgress.innerHTML = '';
+      setStatus('已清空本机新增');
+    });
+  }
+
+  // 后端模式：SSE 实时下载（本机服务运行时生效）
+  function setupBackendAdd() {
+    modeTag.textContent = '实时聚合模式';
+    modeTag.className = 'mode-tag mode-backend';
+    aggClear.style.display = 'none';
+
+    aggBtn.addEventListener('click', function () {
+      var raw = aggInput.value.trim();
+      if (!raw) { setStatus('请先粘贴视频链接'); return; }
+      aggBtn.disabled = true;
+      setStatus('正在汇总…');
+      aggProgress.innerHTML = '';
+      var grid = document.getElementById('videoGrid');
+      var pending = {};
+
+      fetch('/api/aggregate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: [raw] })
+      }).then(function (resp) {
+        if (!resp.ok) { setStatus('⚠️ 当前为静态查看，新增请见面板说明'); aggBtn.disabled = false; return; }
+        var reader = resp.body.getReader();
+        var decoder = new TextDecoder();
+        var buf = '';
+        function pump() {
+          return reader.read().then(function (r) {
+            if (r.done) { setStatus('汇总完成，正在刷新列表…'); aggBtn.disabled = false; return fetch('/api/videos').then(function(x){return x.json();}).then(renderList).catch(function(){}); }
+            buf += decoder.decode(r.value, { stream: true });
+            var idx;
+            while ((idx = buf.indexOf('\n\n')) >= 0) {
+              var chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+              var m = chunk.match(/^data: (.*)$/m);
+              if (m) handleEvent(JSON.parse(m[1]));
+            }
+            return pump();
+          });
+        }
+        pump();
+      }).catch(function (err) { setStatus('请求失败：' + err); aggBtn.disabled = false; });
+
+      function handleEvent(ev) {
+        if (ev.stage === 'start') {
+          setStatus('下载中 ' + (ev.index + 1) + '/' + ev.total);
+          var d = document.createElement('div'); d.className = 'agg-row'; d.dataset.i = ev.index;
+          d.textContent = '⏳ ' + ev.url; aggProgress.appendChild(d);
+          var pc = document.createElement('div'); pc.className = 'card';
+          pc.innerHTML = '<div class="card-body"><div class="card-label">⏳ 下载中…</div><div class="card-desc">' + escapeHtml(ev.url) + '</div><div class="card-local">正在下载，请稍候</div></div>';
+          grid.insertBefore(pc, grid.firstChild);
+          pending[ev.index] = pc;
+        } else if (ev.stage === 'done') {
+          var el = aggProgress.querySelector('[data-i="' + ev.index + '"]');
+          if (el) el.textContent = '✅ ' + (ev.entry.label || ev.url);
+          var pc2 = pending[ev.index];
+          if (pc2) { pc2.innerHTML = makeCardHtml(ev.entry); wireVideo(pc2.querySelector('video')); delete pending[ev.index]; }
+        } else if (ev.stage === 'error') {
+          var el2 = aggProgress.querySelector('[data-i="' + ev.index + '"]');
+          if (el2) el2.textContent = '❌ ' + ev.url + '：' + ev.msg;
+          var pc3 = pending[ev.index];
+          if (pc3) { pc3.innerHTML = '<div class="card-body"><div class="card-label">❌ 汇总失败</div><div class="card-desc">' + escapeHtml(ev.url) + '：' + escapeHtml(ev.msg) + '</div><div class="card-local">该链接未加入汇总</div></div>'; delete pending[ev.index]; }
+        } else if (ev.stage === 'complete') {
+          setStatus('完成：新增 ' + ev.added + '，失败 ' + ev.failed + '（共 ' + ev.total + '）');
+        }
+      }
+    });
+  }
+
+  // ---- 优先加载 /videos.json（静态清单），再探测后端 ----
+  fetch('/videos.json')
+    .then(function (r) { if (!r.ok) throw new Error('no videos.json'); return r.json(); })
+    .then(function (list) {
+      seedList = list;
+      return fetch('/api/videos');
+    })
+    .then(function (r) {
+      var ct = r.headers.get('content-type') || '';
+      if (r.ok && ct.indexOf('application/json') >= 0) {
+        return r.json().then(function (bList) {
+          hasBackend = true;
+          renderList(bList);
+          setupBackendAdd();
+        });
+      }
+      throw new Error('static fallback');
+    })
+    .catch(function () {
+      var added = loadAdded();
+      renderList(seedList.concat(added));
+      setupStaticAdd();
+    });
+});
+</script>
+
+</body>
+</html>

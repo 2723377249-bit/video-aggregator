@@ -1,0 +1,9 @@
+# Render Blueprint —— 在 Render Dashboard 选 New → Blueprint，连接本仓库即可一键部署
+services:
+  - type: web
+    name: video-aggregator
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars: []

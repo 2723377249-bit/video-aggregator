@@ -1,0 +1,6 @@
+# 运行时生成的视频/封面（由 fetch_seeds.py 在构建镜像时下载，不进仓库）
+media/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
