@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>风格调研 · 视频汇总</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    line-height: 1.7;
+    padding: 40px 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 8px;
+    color: #f0f6fc;
+    letter-spacing: 2px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #8b949e;
+    font-size: 0.95em;
+    margin-bottom: 50px;
+  }
+  h2 {
+    font-size: 1.5em;
+    color: #f0f6fc;
+    border-left: 4px solid #58a6ff;
+    padding-left: 16px;
+    margin: 50px 0 24px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 28px;
+  }
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform .25s ease, box-shadow .25s ease,
+                border-color .25s ease;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 36px rgba(88,166,255,.12);
+    border-color: #58a6ff55;
+  }
+  .card-body { padding: 18px 20px 16px; }
+  .card-label {
+    font-weight: 700;
+    font-size: 1.08em;
+    color: #f0f6fc;
+    margin-bottom: 6px;
+  }
+  .card-desc {
+    font-size: 0.87em;
+    color: #8b949e;
+    margin-bottom: 14px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #58a6ff;
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: #58a6ff15;
+    border: 1px solid #58a6ff30;
+    transition: all .2s ease;
+  }
+  .card-link:hover { background: #58a6ff28; border-color: #58a6ff60; }
+  .card-link::before { content: "\1F517"; font-size: 1.05em; }
+
+  .sub-section {
+    font-size: 1.18em;
+    color: #e6edf3;
+    margin: 30px 0 16px;
+    padding-left: 14px;
+    border-left: 3px solid #a371f7;
+    font-weight: 700;
+  }
+  .research-list { list-style: none; counter-reset: rc; }
+  .research-item {
+    counter-increment: rc;
+    position: relative;
+    padding: 16px 20px 16px 52px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    transition: border-color .2s;
+  }
+  .research-item:hover { border-color: #58a6ff44; }
+  .research-item::before {
+    content: counter(rc);
+    position: absolute; left: 16px; top: 17px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #58a6ff, #a371f7);
+    color: #fff; font-size: 0.78em; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .platform-name { font-weight: 700; color: #f0f6fc; font-size: 0.98em; }
+  .platform-link {
+    font-weight: 400; font-size: 0.82em; color: #58a6ff;
+    text-decoration: none; margin-left: 6px; word-break: break-all;
+  }
+  .platform-link:hover { text-decoration: underline; }
+  .platform-note { color: #8b949e; font-size: 0.92em; margin-top: 2px; }
+
+  .footer {
+    text-align: center; color: #484f58; font-size: 0.82em;
+    margin-top: 60px; padding-top: 24px; border-top: 1px solid #21262d;
+  }
+
+  .card-video {
+    width:100%; display:block; margin-top:12px; border-radius:10px;
+    background:#000; aspect-ratio:16/9; object-fit:contain;
+    border:1px solid #30363d;
+  }
+  .card-local { margin-top:10px; font-size:12.5px; color:#7ee0a8; letter-spacing:.5px; }
+  .card-local.pending { color:#ffb86c; }
+
+  .video-wrap { position:relative; margin-top:12px; }
+  .card-video { margin-top:0 !important; }
+  .play-overlay {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; background:rgba(0,0,0,.28); border-radius:10px; z-index:2;
+  }
+  .play-overlay span {
+    width:66px; height:66px; border-radius:50%; background:rgba(0,0,0,.6);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:30px; line-height:1; pointer-events:none;
+  }
+  .video-error {
+    display:none; margin-top:8px; padding:16px 18px; background:#2a1414;
+    color:#ffb4b4; border:1px solid #5a2a2a; border-radius:10px;
+    font-size:13px; line-height:1.7;
+  }
+
+  .video-lightbox {
+    position:fixed; inset:0; background:rgba(0,0,0,.92);
+    display:none; align-items:center; justify-content:center; z-index:9999;
+  }
+  .video-lightbox.open { display:flex; }
+  .video-lightbox video {
+    max-width:92vw; max-height:86vh; width:auto; height:auto;
+    background:#000; border-radius:8px; outline:none;
+  }
+  .video-lightbox .lb-close {
+    position:absolute; top:18px; right:22px; width:44px; height:44px;
+    border-radius:50%; background:rgba(255,255,255,.16); color:#fff;
+    border:none; font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .video-lightbox .lb-close:hover { background:rgba(255,255,255,.32); }
+  .video-lightbox .lb-hint {
+    position:absolute; bottom:18px; left:0; right:0; text-align:center;
+    color:#bbb; font-size:13px;
+  }
+
+  .card-iframe {
+    width:100%; aspect-ratio:16/9; border:0; display:block; border-radius:10px; margin-top:12px; background:#000;
+  }
+
+  /* ---- 提交汇总面板 ---- */
+  .request{background:linear-gradient(135deg,#1f2a44,#2a1f3a);border:1px solid #3a3f5a;border-radius:14px;padding:18px 20px;margin:8px 0 22px;color:#e8ecf5;}
+  .request h2{margin:0 0 6px;font-size:20px;color:#fff;border:none;padding:0;}
+  .req-hint{margin:0 0 12px;font-size:13px;color:#aab3c8;line-height:1.6;}
+  #reqInput{width:100%;min-height:92px;resize:vertical;box-sizing:border-box;background:#0e1320;border:1px solid #3a3f5a;border-radius:10px;color:#e8ecf5;padding:12px;font-size:13px;line-height:1.6;font-family:inherit;}
+  .req-actions{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap;}
+  #reqBtn{background:linear-gradient(135deg,#5b8cff,#8a5bff);border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:10px;cursor:pointer;transition:.15s;}
+  #reqBtn:hover{filter:brightness(1.1);}
+  #reqStatus{font-size:13px;color:#9fe6c0;}
+  .req-queue{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+  .req-row{font-size:13px;color:#cdd6ea;background:#0e1320;border:1px solid #2a3050;border-radius:8px;padding:8px 12px;word-break:break-all;}
+  .req-clear{margin-left:auto;font-size:12px;color:#8b9bbd;text-decoration:underline;cursor:pointer;background:none;border:none;}
+</style>
+<script src="./config.js"></script>
+</head>
+<body>
+
+<h1>✨ 风格调研 · 视频汇总</h1>
+<p class="subtitle">AI 影像狂飙季 参考视频集合 ＇ 12 部作品 + 可继续新增（云端永久保存）</p>
+
+<section class="request">
+  <h2>📨 提交汇总请求</h2>
+  <p class="req-hint">
+    粘贴抖音 / B站 视频链接（每行一个，或逗号分隔），点击「提交请求」。<br>
+    <span style="color:#ffb86c">说明：本站点为纯静态托管，无法在浏览器内直接下载视频。你提交的链接会先记录在本机，
+    由管理员在本地运行汇总脚本下载并上传后，视频才会出现在下方「网址汇总」中、<b>所有人永久可见</b>。
+    也可以直接把链接发给管理员处理。</span>
+  </p>
+  <textarea id="reqInput" placeholder="https://v.douyin.com/xxxx/&#10;https://www.bilibili.com/video/BVxxxx"></textarea>
+  <div class="req-actions">
+    <button id="reqBtn">📨 提交请求</button>
+    <span id="reqStatus"></span>
+    <button id="reqClear" class="req-clear">清空本机记录</button>
+  </div>
+  <div id="reqQueue" class="req-queue"></div>
+</section>
+
+<h2>🎥 网址汇总</h2>
+<div class="grid" id="videoGrid"></div>
+<h2>🧠 AI 平台调研</h2>
+<h3 class="sub-section">📝 脚本写作</h3>
+<ul class="research-list">
+  <li class="research-item">
+    <div class="platform-name">Kimi <a class="platform-link" href="https://kimi.moonshot.cn" target="_blank" rel="noopener">https://kimi.moonshot.cn</a></div>
+    <div class="platform-note">写的提示词在镜头切换上比较有意思</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">GPT <a class="platform-link" href="https://chat.openai.com" target="_blank" rel="noopener">https://chat.openai.com</a></div>
+    <div class="platform-note">中规中矩 但故事走向比较文艺 需要手动把控故事走向</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">WorkBuddy <a class="platform-link" href="https://www.workbuddy.ai" target="_blank" rel="noopener">https://www.workbuddy.ai</a></div>
+    <div class="platform-note">很多提示词ai听不太懂（可能是文学性太强了）手动调整后会从一个极端变成另一个极端 但是是所有ai里写的最具观赏性的</div>
+  </li>
+</ul>
+<h3 class="sub-section">🎬 视频生成</h3>
+<ul class="research-list">
+  <li class="research-item">
+    <div class="platform-name">MiniMax <a class="platform-link" href="https://www.minimax.io" target="_blank" rel="noopener">https://www.minimax.io</a></div>
+    <div class="platform-note">相较于LibTV人物可能还是比较呆板 但特写镜头表现上强于LibTV</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">可灵3.0 omni <a class="platform-link" href="https://klingai.com" target="_blank" rel="noopener">https://klingai.com</a></div>
+    <div class="platform-note">目前看到的最不呆板人物最有情绪的 甚至可以有演技</div>
+  </li>
+</ul>
+<h3 class="sub-section">🖼 图片生成</h3>
+<ul class="research-list">
+  <li class="research-item">
+    <div class="platform-name">即梦 <a class="platform-link" href="https://jimeng.jianying.com" target="_blank" rel="noopener">https://jimeng.jianying.com</a></div>
+    <div class="platform-note">需要长篇幅的提示词去把控画面效果 如果生成的是古风小生（不加服装发型提示词的话）会出来一个很命苦的老农民 不过胜在便宜 一张图只要3积分 可以用来出场景参考图</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">Midjourney <a class="platform-link" href="https://www.midjourney.com" target="_blank" rel="noopener">https://www.midjourney.com</a></div>
+    <div class="platform-note">可能是目前最好的场景生成ai 质量非常高 不过不好把控 思维发散太强了</div>
+  </li>
+  <li class="research-item">
+    <div class="platform-name">WorkBuddy & MJ <a class="platform-link" href="https://www.workbuddy.ai" target="_blank" rel="noopener">https://www.workbuddy.ai</a></div>
+    <div class="platform-note">如果用英文提示词的效果会强于中文提示词</div>
+  </li>
+</ul>
+
+
+<div class="footer">
+  风格调研 2.0 · 自动整理于 2026-08-13<br>
+  封面图源自抖音分享页播放器截图<br>
+  <span style="color:#6b7280">静态站点 + 对象存储方案：视频与清单存于 Backblaze B2，前端托管于 Cloudflare Pages，永久在线、本机可关机。</span>
+</div>
+
+
+<script>
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var B2_BASE = (window.APP_CONFIG && window.APP_CONFIG.b2Base) || '';
+
+  // ---- 灯箱 ----
+  var lb = document.createElement('div');
+  lb.className = 'video-lightbox';
+  lb.innerHTML = '<button class="lb-close" title="关闭">✕</button>' +
+                 '<video id="lbVideo" controls playsinline></video>' +
+                 '<div class="lb-hint">按 ESC 或点击空白处关闭</div>';
+  document.body.appendChild(lb);
+  var lbv = lb.querySelector('#lbVideo');
+  var lbClose = lb.querySelector('.lb-close');
+
+  function openLb(src, poster) {
+    lbv.src = src;
+    if (poster) lbv.poster = poster;
+    lb.classList.add('open');
+    var p = lbv.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+  function closeLb() {
+    lb.classList.remove('open');
+    lbv.pause();
+    lbv.removeAttribute('src');
+    lbv.load();
+  }
+  lbClose.addEventListener('click', closeLb);
+  lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+
+  function wireVideo(v) {
+    var wrap = document.createElement('div');
+    wrap.className = 'video-wrap';
+    v.parentNode.insertBefore(wrap, v);
+    wrap.appendChild(v);
+
+    var ov = document.createElement('div');
+    ov.className = 'play-overlay';
+    ov.innerHTML = '<span>▶</span>';
+    wrap.appendChild(ov);
+
+    var err = document.createElement('div');
+    err.className = 'video-error';
+    err.textContent = '⚠️ 视频加载失败：请检查网络，或视频链接是否已失效。';
+    wrap.appendChild(err);
+
+    function hideOv() { ov.style.display = 'none'; }
+    ov.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (v.error) { err.style.display = 'block'; return; }
+      openLb(v.src, v.poster);
+    });
+    v.addEventListener('click', function () {
+      if (v.paused) openLb(v.src, v.poster);
+    });
+    v.addEventListener('error', function () { hideOv(); err.style.display = 'block'; });
+    setTimeout(function () {
+      if (v.readyState === 0 && v.networkState === 3) { hideOv(); err.style.display = 'block'; }
+    }, 4000);
+  }
+
+  function mediaSrc(e) {
+    if (e.url && /^https?:\/\//i.test(e.url)) return e.url;
+    if (e.file) return B2_BASE + '/' + e.file;
+    return '';
+  }
+  function posterSrc(e) {
+    if (!e.poster) return '';
+    if (/^https?:\/\//i.test(e.poster)) return e.poster;
+    return B2_BASE + '/' + e.poster;
+  }
+
+  function makeCardHtml(e) {
+    var src = mediaSrc(e);
+    var poster = posterSrc(e);
+    var tag = e.seed ? '' : '<div class="card-local">▶ 新增 · 云端永久保存</div>';
+    return '<video class="card-video" preload="none" src="' + src + '"' +
+      (poster ? ' poster="' + poster + '"' : '') + '></video>' +
+      '<div class="card-body">' +
+        '<div class="card-label">' + escapeHtml(e.label) + '</div>' +
+        '<div class="card-desc">' + escapeHtml(e.desc) + '</div>' +
+        tag +
+      '</div>';
+  }
+
+  function makePendingHtml(item) {
+    return '<div class="card-body">' +
+      '<div class="card-label">⏳ 待处理：' + escapeHtml(item.label || '链接') + '</div>' +
+      '<div class="card-desc">' + escapeHtml(item.url) + '</div>' +
+      '<div class="card-local pending">已提交，管理员汇总后将出现在列表中</div>' +
+    '</div>';
+  }
+
+  function renderList(list, pending) {
+    var grid = document.getElementById('videoGrid');
+    grid.innerHTML = '';
+    (list || []).forEach(function (e) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = makeCardHtml(e);
+      var v = card.querySelector('video');
+      if (v) wireVideo(v);
+      grid.appendChild(card);
+    });
+    (pending || []).forEach(function (item) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = makePendingHtml(item);
+      grid.appendChild(card);
+    });
+  }
+
+  // ---- 提交汇总请求（本机记录） ----
+  var LS_KEY = 'style_research_requests';
+  function loadRequests() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveRequests(a) { localStorage.setItem(LS_KEY, JSON.stringify(a)); }
+  function renderQueue() {
+    var reqs = loadRequests();
+    var box = document.getElementById('reqQueue');
+    box.innerHTML = '';
+    reqs.forEach(function (r) {
+      box.innerHTML += '<div class="req-row">⏳ ' + escapeHtml(r.url) + '</div>';
+    });
+  }
+
+  var reqBtn = document.getElementById('reqBtn');
+  var reqInput = document.getElementById('reqInput');
+  var reqStatus = document.getElementById('reqStatus');
+  var reqClear = document.getElementById('reqClear');
+
+  reqBtn.addEventListener('click', function () {
+    var raw = reqInput.value.trim();
+    if (!raw) { reqStatus.textContent = '请先粘贴视频链接'; return; }
+    var lines = raw.split(/[\n,，]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var reqs = loadRequests();
+    var ok = 0;
+    lines.forEach(function (line) {
+      if (reqs.some(function (r) { return r.url === line; })) return;
+      reqs.push({ url: line, label: line, ts: Date.now() });
+      ok++;
+    });
+    saveRequests(reqs);
+    renderQueue();
+    reqStatus.textContent = '已记录 ' + ok + ' 个请求（本机保存）· 管理员运行汇总脚本后会出现在列表中';
+    reqInput.value = '';
+  });
+  reqClear.addEventListener('click', function () {
+    saveRequests([]);
+    renderQueue();
+    reqStatus.textContent = '已清空本机记录';
+  });
+
+  // ---- 加载 B2 上的 videos.json ----
+  function boot() {
+    if (!B2_BASE || B2_BASE.indexOf('REPLACE') === 0) {
+      document.getElementById('videoGrid').innerHTML =
+        '<div class="card"><div class="card-body"><div class="card-label">⚠️ 未配置 B2 地址</div>' +
+        '<div class="card-desc">请在 config.js 中填写 b2Base（你的 B2 公开访问基址）。</div></div></div>';
+      renderQueue();
+      return;
+    }
+    fetch(B2_BASE + '/videos.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
+      .then(function (list) {
+        renderList(list, loadRequests());
+      })
+      .catch(function () {
+        renderList([], loadRequests());
+        reqStatus.textContent = '⚠️ 无法加载视频清单，请确认 B2 桶已设为公开且 videos.json 已上传';
+      });
+    renderQueue();
+  }
+  boot();
+});
+</script>
+
+</body>
+</html>
