@@ -3,5 +3,4 @@ __pycache__/
 .git
 .gitattributes
 .DS_Store
-media/
 *.part

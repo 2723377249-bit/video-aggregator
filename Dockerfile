@@ -1,5 +1,4 @@
-# Hugging Face Spaces — Docker SDK
-# 构建时会从公有源拉取 12 个种子视频烤进镜像（无需手动上传 442MB）。
+# Render (Docker) — 种子视频已随仓库提交，构建自包含、无需外网拉取。
 FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
