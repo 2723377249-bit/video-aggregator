@@ -120,11 +120,15 @@ def _download_douyin_ytdlp(url, out_path):
     if r.returncode != 0:
         print("yt-dlp (douyin) stderr:", r.stderr[-2000:] if r.stderr else "(empty)")
         raise RuntimeError("yt-dlp 抖音下载失败：" + (r.stderr or "unknown")[-500:])
-    # yt-dlp 可能不会写描述，尝试获取标题
+    # yt-dlp 可能不会写描述，尝试获取标题（带 cookie）
     title = ""
     try:
-        r2 = subprocess.run([PY, "-m", "yt_dlp", "-e", url],
-                            capture_output=True, text=True, timeout=60)
+        tcmd = [PY, "-m", "yt_dlp", "--ffmpeg-location", FFMPEG]
+        cookie = os.environ.get("DOUYIN_COOKIE")
+        if cookie:
+            tcmd += ["--add-header", "Cookie: " + cookie]
+        tcmd += ["-e", url]
+        r2 = subprocess.run(tcmd, capture_output=True, text=True, timeout=60)
         title = (r2.stdout or "").strip()
     except Exception:
         pass
