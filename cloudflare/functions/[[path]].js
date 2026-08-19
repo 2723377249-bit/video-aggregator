@@ -119,12 +119,13 @@ async function handleAggregate(request, env, origin) {
   const repo = env.GITHUB_REPO || "2723377249-bit/video-aggregator";
   const dispatch = await fetch(`${GITHUB_API}/repos/${repo}/dispatches`, {
     method: "POST",
-    headers: {
-      Authorization: "token " + env.GITHUB_TOKEN,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Content-Type": "application/json",
-    },
+      headers: {
+        Authorization: "token " + env.GITHUB_TOKEN,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+        "User-Agent": "video-aggregator-worker",
+      },
     body: JSON.stringify({
       event_type: "aggregate",
       client_payload: { urls, submitted_at: new Date().toISOString() },
