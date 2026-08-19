@@ -1,9 +1,25 @@
 """视频下载模块：B站(yt-dlp) + 抖音(Playwright 抓 play_addr)。"""
-import os, subprocess, sys
+import os, shutil, subprocess, sys
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FFMPEG = os.path.join(ROOT, "tools", "ffmpeg", "ffmpeg-master-latest-win64-gpl", "bin", "ffmpeg.exe")
+
+
+def _find_ffmpeg():
+    """优先环境变量 FFMPEG_PATH，其次系统 PATH，最后回退本地 Windows 工具。"""
+    env = os.environ.get("FFMPEG_PATH")
+    if env and os.path.isfile(env):
+        return env
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    local = os.path.join(ROOT, "tools", "ffmpeg", "ffmpeg-master-latest-win64-gpl", "bin", "ffmpeg.exe")
+    if os.path.isfile(local):
+        return local
+    return "ffmpeg"
+
+
+FFMPEG = _find_ffmpeg()
 PY = sys.executable  # 服务进程本身即 venv 的 python，直接复用
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
