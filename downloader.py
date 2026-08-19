@@ -102,10 +102,20 @@ def download_bilibili(url, out_path):
     return title, ""
 
 
+def _ytdlp_cmd(url, out_path=None):
+    cmd = [PY, "-m", "yt_dlp", "--ffmpeg-location", FFMPEG]
+    cookie = os.environ.get("DOUYIN_COOKIE")
+    if cookie:
+        cmd += ["--add-header", "Cookie: " + cookie]
+    if out_path:
+        cmd += ["-o", out_path]
+    cmd += [url]
+    return cmd
+
+
 def _download_douyin_ytdlp(url, out_path):
-    """用 yt-dlp 下载抖音，作为 Playwright 失败时的回退。"""
-    r = subprocess.run([PY, "-m", "yt_dlp", "--ffmpeg-location", FFMPEG,
-                        "-o", out_path, url],
+    """用 yt-dlp 下载抖音（带 DOUYIN_COOKIE，若配置）。"""
+    r = subprocess.run(_ytdlp_cmd(url, out_path),
                        capture_output=True, text=True, timeout=300)
     if r.returncode != 0:
         print("yt-dlp (douyin) stderr:", r.stderr[-2000:] if r.stderr else "(empty)")

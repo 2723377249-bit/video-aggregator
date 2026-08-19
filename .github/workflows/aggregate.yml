@@ -47,4 +47,5 @@ jobs:
           B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
           B2_BUCKET: ${{ secrets.B2_BUCKET }}
           B2_BUCKET_ID: ${{ secrets.B2_BUCKET_ID }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
         run: python aggregate_remote.py
