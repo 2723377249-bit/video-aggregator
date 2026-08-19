@@ -46,10 +46,13 @@ def download_bilibili(url, out_path):
         print("bili title err", e)
     if not title:
         title = os.path.splitext(os.path.basename(out_path))[0]
-    subprocess.run([PY, "-m", "yt_dlp", "--ffmpeg-location", FFMPEG,
+    r = subprocess.run([PY, "-m", "yt_dlp", "--ffmpeg-location", FFMPEG,
                     "-f", "bv+ba/b", "--merge-output-format", "mp4",
-                    "-o", out_path, url], capture_output=True, text=True, timeout=300,
-                   check=True)
+                    "-o", out_path, url], capture_output=True, text=True, timeout=300)
+    if r.returncode != 0:
+        print("yt-dlp stderr:", r.stderr[-2000:] if r.stderr else "(empty)")
+        print("yt-dlp stdout:", r.stdout[-1000:] if r.stdout else "(empty)")
+        raise RuntimeError("yt-dlp 下载失败：" + (r.stderr or "unknown")[-500:])
     poster = os.path.splitext(out_path)[0] + ".jpg"
     _extract_poster(out_path, poster)
     return title, ""
