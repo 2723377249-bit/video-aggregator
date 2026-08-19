@@ -1,5 +1,5 @@
 """视频下载模块：B站(yt-dlp) + 抖音(Playwright 抓 play_addr)。"""
-import os, shutil, subprocess, sys
+import json, os, shutil, subprocess, sys
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -102,7 +102,26 @@ def download_bilibili(url, out_path):
     return title, ""
 
 
-def download_douyin(url, out_path):
+def _download_douyin_ytdlp(url, out_path):
+    """用 yt-dlp 下载抖音，作为 Playwright 失败时的回退。"""
+    r = subprocess.run([PY, "-m", "yt_dlp", "--ffmpeg-location", FFMPEG,
+                        "-o", out_path, url],
+                       capture_output=True, text=True, timeout=300)
+    if r.returncode != 0:
+        print("yt-dlp (douyin) stderr:", r.stderr[-2000:] if r.stderr else "(empty)")
+        raise RuntimeError("yt-dlp 抖音下载失败：" + (r.stderr or "unknown")[-500:])
+    # yt-dlp 可能不会写描述，尝试获取标题
+    title = ""
+    try:
+        r2 = subprocess.run([PY, "-m", "yt_dlp", "-e", url],
+                            capture_output=True, text=True, timeout=60)
+        title = (r2.stdout or "").strip()
+    except Exception:
+        pass
+    return title or "抖音视频", ""
+
+
+def _download_douyin_playwright(url, out_path):
     """返回 (title, desc)。Playwright 抓 aweme detail 的 play_addr 下载。"""
     detail = {}
     with sync_playwright() as p:
@@ -119,7 +138,25 @@ def download_douyin(url, out_path):
 
         pg.on("response", on_resp)
         pg.goto(url, wait_until="domcontentloaded", timeout=60000)
-        pg.wait_for_timeout(6000)
+        pg.wait_for_timeout(8000)
+        d = detail.get("d")
+        if not d:
+            # 最后尝试解析页面内嵌的 RENDER_DATA
+            try:
+                render = pg.evaluate('''() => {
+                    const el = document.querySelector('script[id="RENDER_DATA"]');
+                    return el ? el.textContent : "";
+                }''')
+                if render:
+                    rd = json.loads(render)
+                    # 常见路径
+                    app = rd.get("app", {})
+                    for k in ["videoInfo", "video", "aweme_detail", "awemeDetail"]:
+                        if k in app:
+                            detail["d"] = {"aweme_detail": app[k]}
+                            break
+            except Exception as e:
+                print("RENDER_DATA parse err", e)
         d = detail.get("d")
         if not d:
             b.close()
@@ -142,9 +179,29 @@ def download_douyin(url, out_path):
         b.close()
 
     label = desc.strip().split("\n")[0][:30] or "抖音视频"
-    poster = os.path.splitext(out_path)[0] + ".jpg"
-    _extract_poster(out_path, poster)
     return label, desc.strip()
+
+
+def download_douyin(url, out_path):
+    """返回 (title, desc)。优先 yt-dlp，失败再回退 Playwright。"""
+    errs = []
+    try:
+        title, desc = _download_douyin_ytdlp(url, out_path)
+        poster = os.path.splitext(out_path)[0] + ".jpg"
+        _extract_poster(out_path, poster)
+        return title, desc
+    except Exception as e:
+        errs.append(str(e))
+        print("yt-dlp 抖音失败：", e)
+    try:
+        title, desc = _download_douyin_playwright(url, out_path)
+        poster = os.path.splitext(out_path)[0] + ".jpg"
+        _extract_poster(out_path, poster)
+        return title, desc
+    except Exception as e:
+        errs.append(str(e))
+        print("Playwright 抖音失败：", e)
+    raise RuntimeError("抖音下载失败：" + "; ".join(errs[-2:]))
 
 
 def classify(url):
