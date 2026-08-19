@@ -194,6 +194,11 @@
   .req-queue{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
   .req-row{font-size:13px;color:#cdd6ea;background:#0e1320;border:1px solid #2a3050;border-radius:8px;padding:8px 12px;word-break:break-all;}
   .req-clear{margin-left:auto;font-size:12px;color:#8b9bbd;text-decoration:underline;cursor:pointer;background:none;border:none;}
+  .up-input{width:100%;box-sizing:border-box;background:#0e1320;border:1px solid #3a3f5a;border-radius:10px;color:#e8ecf5;padding:10px 12px;font-size:13px;margin-bottom:10px;}
+  .up-input[type=file]{cursor:pointer;padding:12px;}
+  #upStatus{font-size:13px;color:#9fe6c0;}
+  #upStatus.warn{color:#ffb86c;}
+  #upStatus.err{color:#ff7b7b;}
 </style>
 </head>
 <body>
@@ -214,6 +219,20 @@
     <button id="reqClear" class="req-clear">清空记录</button>
   </div>
   <div id="reqQueue" class="req-queue"></div>
+</section>
+
+<section class="request">
+  <h2>📤 上传视频</h2>
+  <p class="req-hint">
+    选择本地已下载的 mp4 视频（可多选，单个不超过 80MB），可填标题（可选），点击「一键归纳」上传。<br>
+    <span style="color:#9fe6c0">上传成功后视频会<b>立刻出现在下方「网址汇总」中，所有人刷新页面即可在线播放</b>，永久保存。</span>
+  </p>
+  <input type="file" id="upInput" class="up-input" accept="video/mp4,.mp4" multiple>
+  <input type="text" id="upTitle" class="up-input" placeholder="标题（可选，留空则用文件名）">
+  <div class="req-actions">
+    <button id="upBtn">📤 一键归纳</button>
+    <span id="upStatus"></span>
+  </div>
 </section>
 
 <h2>🎥 网址汇总</h2>
@@ -470,6 +489,53 @@ document.addEventListener('DOMContentLoaded', function () {
     saveRequests([]);
     renderQueue();
     reqStatus.textContent = '已清空记录'; reqStatus.className = '';
+  });
+
+  // ---- 上传本地视频（一键归纳） ----
+  var upBtn = document.getElementById('upBtn');
+  var upInput = document.getElementById('upInput');
+  var upTitle = document.getElementById('upTitle');
+  var upStatus = document.getElementById('upStatus');
+
+  upBtn.addEventListener('click', function () {
+    var files = upInput.files;
+    if (!files || files.length === 0) {
+      upStatus.textContent = '请先选择 mp4 视频文件'; upStatus.className = 'warn'; return;
+    }
+    var title = upTitle.value.trim();
+    var arr = Array.prototype.slice.call(files);
+    // 过滤非 mp4
+    arr = arr.filter(function (f) {
+      return /\.mp4$/i.test(f.name) || (f.type && /mp4/i.test(f.type));
+    });
+    if (arr.length === 0) {
+      upStatus.textContent = '仅支持 mp4 视频'; upStatus.className = 'err'; return;
+    }
+    upBtn.disabled = true;
+    var i = 0, ok = 0, fail = 0;
+    function next() {
+      if (i >= arr.length) {
+        upBtn.disabled = false;
+        upStatus.textContent = '✅ 完成：成功 ' + ok + ' 个' + (fail ? '，失败 ' + fail + ' 个' : '') + '，正在刷新列表…';
+        boot();
+        return;
+      }
+      var f = arr[i++];
+      var short = f.name.length > 34 ? f.name.slice(0, 34) + '…' : f.name;
+      upStatus.textContent = '⏳ 上传 ' + i + '/' + arr.length + '：' + short; upStatus.className = '';
+      fetch('/api/upload?name=' + encodeURIComponent(title || f.name.replace(/\.mp4$/i, '')), {
+        method: 'POST',
+        headers: { 'Content-Type': 'video/mp4' },
+        body: f
+      })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (res.ok) { ok++; } else { fail++; console.log('upload fail:', res.d); }
+        next();
+      })
+      .catch(function () { fail++; next(); });
+    }
+    next();
   });
 
   // ---- 加载视频清单（由 Worker 同源代理） ----
