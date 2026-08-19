@@ -35,8 +35,52 @@ def _extract_poster(video_path, poster_path):
         return False
 
 
+def _bvid_from_url(url):
+    import re
+    m = re.search(r"BV\w+", url)
+    return m.group(0) if m else None
+
+
+def _download_bilibili_api(bvid, out_path):
+    """用 Bilibili 公开 API 下载（绕开 yt-dlp 在美国 runner 上的 412）。"""
+    import requests
+    headers = {
+        "User-Agent": UA,
+        "Referer": "https://www.bilibili.com",
+    }
+    view = requests.get(f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}",
+                        headers=headers, timeout=30).json()
+    if view.get("code") != 0:
+        raise RuntimeError(f"B站 view API 错误：{view}")
+    data = view["data"]
+    cid = data["cid"]
+    title = data.get("title") or bvid
+    pu = requests.get(
+        f"https://api.bilibili.com/x/player/playurl?bvid={bvid}&cid={cid}&qn=80&fnval=0&fourk=1",
+        headers=headers, timeout=30).json()
+    if pu.get("code") != 0:
+        raise RuntimeError(f"B站 playurl API 错误：{pu}")
+    durl = pu["data"]["durl"][0]
+    video_url = durl["url"]
+    r = requests.get(video_url, headers=headers, timeout=300)
+    r.raise_for_status()
+    with open(out_path, "wb") as f:
+        f.write(r.content)
+    return title, ""
+
+
 def download_bilibili(url, out_path):
-    """返回 (title, desc)。用 yt-dlp 下载（音视频合并）。"""
+    """返回 (title, desc)。优先用 B站 API，失败再回退 yt-dlp。"""
+    bvid = _bvid_from_url(url)
+    if bvid:
+        try:
+            title, desc = _download_bilibili_api(bvid, out_path)
+            poster = os.path.splitext(out_path)[0] + ".jpg"
+            _extract_poster(out_path, poster)
+            return title, desc
+        except Exception as e:
+            print("B站 API 下载失败，回退 yt-dlp：", e)
+    # 回退 yt-dlp
     title = ""
     try:
         r = subprocess.run([PY, "-m", "yt_dlp", "-e", url],
