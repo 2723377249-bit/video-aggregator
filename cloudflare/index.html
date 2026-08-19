@@ -187,7 +187,10 @@
   .req-actions{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap;}
   #reqBtn{background:linear-gradient(135deg,#5b8cff,#8a5bff);border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:10px;cursor:pointer;transition:.15s;}
   #reqBtn:hover{filter:brightness(1.1);}
-  #reqStatus{font-size:13px;color:#9fe6c0;}
+  #reqBtn:disabled{opacity:.6;cursor:not-allowed;}
+  #reqStatus{font-size:13px;color:#9fe6c0;min-width:120px;}
+  #reqStatus.warn{color:#ffb86c;}
+  #reqStatus.err{color:#ff7b7b;}
   .req-queue{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
   .req-row{font-size:13px;color:#cdd6ea;background:#0e1320;border:1px solid #2a3050;border-radius:8px;padding:8px 12px;word-break:break-all;}
   .req-clear{margin-left:auto;font-size:12px;color:#8b9bbd;text-decoration:underline;cursor:pointer;background:none;border:none;}
@@ -196,21 +199,19 @@
 <body>
 
 <h1>✨ 风格调研 · 视频汇总</h1>
-<p class="subtitle">AI 影像狂飙季 参考视频集合 ＇ 12 部作品 + 可继续新增（云端永久保存）</p>
+<p class="subtitle">AI 影像狂飙季 参考视频集合 ＇ 12 部作品 + 任何人可提交新增（云端自动汇总，永久保存）</p>
 
 <section class="request">
   <h2>📨 提交汇总请求</h2>
   <p class="req-hint">
     粘贴抖音 / B站 视频链接（每行一个，或逗号分隔），点击「提交请求」。<br>
-    <span style="color:#ffb86c">说明：本站点为纯静态托管，无法在浏览器内直接下载视频。你提交的链接会先记录在本机，
-    由管理员在本地运行汇总脚本下载并上传后，视频才会出现在下方「网址汇总」中、<b>所有人永久可见</b>。
-    也可以直接把链接发给管理员处理。</span>
+    <span style="color:#9fe6c0">链接会发送到云端 GitHub Actions 自动下载并上传到 B2，处理完成后<b>所有人刷新页面</b>都能看到新视频（通常 1–3 分钟）。</span>
   </p>
   <textarea id="reqInput" placeholder="https://v.douyin.com/xxxx/&#10;https://www.bilibili.com/video/BVxxxx"></textarea>
   <div class="req-actions">
     <button id="reqBtn">📨 提交请求</button>
     <span id="reqStatus"></span>
-    <button id="reqClear" class="req-clear">清空本机记录</button>
+    <button id="reqClear" class="req-clear">清空记录</button>
   </div>
   <div id="reqQueue" class="req-queue"></div>
 </section>
@@ -264,12 +265,34 @@
 <div class="footer">
   风格调研 2.0 · 自动整理于 2026-08-13<br>
   封面图源自抖音分享页播放器截图<br>
-  <span style="color:#6b7280">静态站点 + 对象存储方案：视频与清单存于 Backblaze B2 私有桶，由 Cloudflare Worker 同源代理播放，永久在线、本机可关机、无需绑卡。</span>
+  <span style="color:#6b7280">Cloudflare Worker + Backblaze B2 私有桶：永久在线、本机可关机、无需绑卡；云端 GitHub Actions 自动汇总新视频。</span>
 </div>
 
 
 <script>
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+function extractUrls(raw) {
+  var list = [];
+  var parts = raw.split(/[\n,，]+/);
+  for (var i = 0; i < parts.length; i++) {
+    var u = parts[i].trim();
+    if (!u) continue;
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    list.push(u);
+  }
+  return list;
+}
+
+function isBili(u) { return /bilibili\.com|b23\.tv|bv/i.test(u); }
+function isDouyin(u) { return /douyin\.com|iesdouyin\.com/i.test(u); }
+function validate(urls) {
+  var ok = [];
+  for (var i = 0; i < urls.length; i++) {
+    if (isBili(urls[i]) || isDouyin(urls[i])) ok.push(urls[i]);
+  }
+  return ok;
+}
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -357,9 +380,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function makePendingHtml(item) {
     return '<div class="card-body">' +
-      '<div class="card-label">⏳ 待处理：' + escapeHtml(item.label || '链接') + '</div>' +
-      '<div class="card-desc">' + escapeHtml(item.url) + '</div>' +
-      '<div class="card-local pending">已提交，管理员汇总后将出现在列表中</div>' +
+      '<div class="card-label">⏳ 处理中：' + escapeHtml(item.url) + '</div>' +
+      '<div class="card-desc">提交时间：' + escapeHtml(new Date(item.ts).toLocaleString()) + '</div>' +
+      '<div class="card-local pending">后台正在下载 / 转码 / 上传，完成后刷新页面可见</div>' +
     '</div>';
   }
 
@@ -382,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ---- 提交汇总请求（本机记录） ----
+  // ---- 提交汇总请求（发送到云端） ----
   var LS_KEY = 'style_research_requests';
   function loadRequests() {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
@@ -393,7 +416,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var box = document.getElementById('reqQueue');
     box.innerHTML = '';
     reqs.forEach(function (r) {
-      box.innerHTML += '<div class="req-row">⏳ ' + escapeHtml(r.url) + '</div>';
+      var status = r.done ? '✅' : '⏳';
+      box.innerHTML += '<div class="req-row">' + status + ' ' + escapeHtml(r.url) + '</div>';
     });
   }
 
@@ -404,24 +428,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
   reqBtn.addEventListener('click', function () {
     var raw = reqInput.value.trim();
-    if (!raw) { reqStatus.textContent = '请先粘贴视频链接'; return; }
-    var lines = raw.split(/[\n,，]+/).map(function (s) { return s.trim(); }).filter(Boolean);
-    var reqs = loadRequests();
-    var ok = 0;
-    lines.forEach(function (line) {
-      if (reqs.some(function (r) { return r.url === line; })) return;
-      reqs.push({ url: line, label: line, ts: Date.now() });
-      ok++;
-    });
-    saveRequests(reqs);
-    renderQueue();
-    reqStatus.textContent = '已记录 ' + ok + ' 个请求（本机保存）· 管理员运行汇总脚本后会出现在列表中';
-    reqInput.value = '';
+    if (!raw) { reqStatus.textContent = '请先粘贴视频链接'; reqStatus.className = 'warn'; return; }
+    var urls = extractUrls(raw);
+    var ok = validate(urls);
+    if (ok.length === 0) {
+      reqStatus.textContent = '未识别到 B站/抖音 链接，请检查格式'; reqStatus.className = 'err'; return;
+    }
+    reqBtn.disabled = true;
+    reqStatus.textContent = '正在提交 ' + ok.length + ' 个链接…'; reqStatus.className = '';
+
+    fetch('/api/aggregate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls: ok })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d, status: r.status }; }); })
+    .then(function (res) {
+      if (!res.ok) {
+        throw new Error(res.data.message || '提交失败（HTTP ' + res.status + '）');
+      }
+      // 记录到本机，便于显示“处理中”
+      var now = Date.now();
+      var reqs = loadRequests();
+      res.data.urls.forEach(function (u) {
+        if (!reqs.some(function (x) { return x.url === u; })) {
+          reqs.push({ url: u, ts: now, done: false });
+        }
+      });
+      saveRequests(reqs);
+      renderQueue();
+      reqStatus.textContent = '✅ 已提交 ' + res.data.urls.length + ' 个链接，后台处理中，约 1–3 分钟后刷新可见';
+      reqInput.value = '';
+    })
+    .catch(function (e) {
+      reqStatus.textContent = '❌ ' + e.message; reqStatus.className = 'err';
+    })
+    .finally(function () { reqBtn.disabled = false; });
   });
+
   reqClear.addEventListener('click', function () {
     saveRequests([]);
     renderQueue();
-    reqStatus.textContent = '已清空本机记录';
+    reqStatus.textContent = '已清空记录'; reqStatus.className = '';
   });
 
   // ---- 加载视频清单（由 Worker 同源代理） ----
@@ -434,6 +482,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function () {
         renderList([], loadRequests());
         reqStatus.textContent = '⚠️ 无法加载视频清单，请确认 Worker 已部署且 B2 桶中有 videos.json';
+        reqStatus.className = 'warn';
       });
     renderQueue();
   }
