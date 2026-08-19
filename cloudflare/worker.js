@@ -313,7 +313,12 @@ export default {
 
     const out = new Headers(up.headers);
     out.set("Access-Control-Allow-Origin", origin);
-    out.set("Cache-Control", "public, max-age=300");
+    // HTML 不缓存（避免用户看到旧版页面）；视频/图片等媒体可缓存
+    if (target.endsWith(".html")) {
+      out.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    } else {
+      out.set("Cache-Control", "public, max-age=300");
+    }
     return new Response(up.body, {
       status: up.status,
       statusText: up.statusText,

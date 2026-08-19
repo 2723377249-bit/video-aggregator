@@ -234,6 +234,10 @@ export async function onRequest(context) {
   }
   const out = new Headers(up.headers);
   out.set("Access-Control-Allow-Origin", origin);
-  out.set("Cache-Control", "public, max-age=300");
+  if (target.endsWith(".html")) {
+    out.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  } else {
+    out.set("Cache-Control", "public, max-age=300");
+  }
   return new Response(up.body, { status: up.status, statusText: up.statusText, headers: out });
 }
