@@ -1,2 +1,16 @@
-name = "style-research-video"
-pages_build_output_dir = "."
+name = "video-aggregator-proxy"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# 非敏感配置直接写在这里
+[vars]
+B2_BUCKET = "jinghe001"
+B2_BUCKET_ID = "2c859aa45ea11345a701081d"
+
+# 敏感凭证请用 secret 注入，切勿提交本文件时带明文：
+#   npx wrangler secret put B2_KEY_ID
+#   npx wrangler secret put B2_APP_KEY
+#
+# 部署：
+#   npx wrangler deploy
+# 之后访问 https://video-aggregator-proxy.<你的子域>.workers.dev

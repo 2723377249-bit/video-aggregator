@@ -192,7 +192,6 @@
   .req-row{font-size:13px;color:#cdd6ea;background:#0e1320;border:1px solid #2a3050;border-radius:8px;padding:8px 12px;word-break:break-all;}
   .req-clear{margin-left:auto;font-size:12px;color:#8b9bbd;text-decoration:underline;cursor:pointer;background:none;border:none;}
 </style>
-<script src="./config.js"></script>
 </head>
 <body>
 
@@ -265,7 +264,7 @@
 <div class="footer">
   风格调研 2.0 · 自动整理于 2026-08-13<br>
   封面图源自抖音分享页播放器截图<br>
-  <span style="color:#6b7280">静态站点 + 对象存储方案：视频与清单存于 Backblaze B2，前端托管于 Cloudflare Pages，永久在线、本机可关机。</span>
+  <span style="color:#6b7280">静态站点 + 对象存储方案：视频与清单存于 Backblaze B2 私有桶，由 Cloudflare Worker 同源代理播放，永久在线、本机可关机、无需绑卡。</span>
 </div>
 
 
@@ -273,7 +272,6 @@
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
 document.addEventListener('DOMContentLoaded', function () {
-  var B2_BASE = (window.APP_CONFIG && window.APP_CONFIG.b2Base) || '';
 
   // ---- 灯箱 ----
   var lb = document.createElement('div');
@@ -335,13 +333,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function mediaSrc(e) {
     if (e.url && /^https?:\/\//i.test(e.url)) return e.url;
-    if (e.file) return B2_BASE + '/' + e.file;
+    if (e.file) return '/media/' + e.file;
     return '';
   }
   function posterSrc(e) {
     if (!e.poster) return '';
     if (/^https?:\/\//i.test(e.poster)) return e.poster;
-    return B2_BASE + '/' + e.poster;
+    return '/media/' + e.poster;
   }
 
   function makeCardHtml(e) {
@@ -426,23 +424,16 @@ document.addEventListener('DOMContentLoaded', function () {
     reqStatus.textContent = '已清空本机记录';
   });
 
-  // ---- 加载 B2 上的 videos.json ----
+  // ---- 加载视频清单（由 Worker 同源代理） ----
   function boot() {
-    if (!B2_BASE || B2_BASE.indexOf('REPLACE') === 0) {
-      document.getElementById('videoGrid').innerHTML =
-        '<div class="card"><div class="card-body"><div class="card-label">⚠️ 未配置 B2 地址</div>' +
-        '<div class="card-desc">请在 config.js 中填写 b2Base（你的 B2 公开访问基址）。</div></div></div>';
-      renderQueue();
-      return;
-    }
-    fetch(B2_BASE + '/videos.json', { cache: 'no-store' })
+    fetch('/videos.json', { cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('no list'); return r.json(); })
       .then(function (list) {
         renderList(list, loadRequests());
       })
       .catch(function () {
         renderList([], loadRequests());
-        reqStatus.textContent = '⚠️ 无法加载视频清单，请确认 B2 桶已设为公开且 videos.json 已上传';
+        reqStatus.textContent = '⚠️ 无法加载视频清单，请确认 Worker 已部署且 B2 桶中有 videos.json';
       });
     renderQueue();
   }

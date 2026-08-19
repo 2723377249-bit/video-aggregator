@@ -1,103 +1,72 @@
 #!/usr/bin/env python3
 """
-本地汇总脚本（Cloudflare Pages + Backblaze B2 方案）
+本地汇总脚本（Cloudflare Worker + Backblaze B2 私有桶方案）
 
 功能：
-  seeds      把 deploy-render/media/ 下的种子视频+封面 上传到 B2，并上传 videos.json
-  add URL...  下载指定 B站/抖音链接 → 上传 B2 → 追加到 videos.json（云端永久保存，所有人可见）
+  seeds      把 deploy-render/media/ 下的种子视频+封面 上传到 B2（media/ 前缀），并上传 videos.json、index.html
+  add URL...  下载指定 B站/抖音链接 → 上传 B2 → 追加到 videos.json（所有人永久可见，无需重新部署）
 
-配置（环境变量，切勿写进文件/仓库）：
-  B2_ENDPOINT   例如 https://s3.us-west-004.backblazeb2.com
-  B2_REGION     例如 us-west-004
-  B2_BUCKET     桶名
-  B2_KEY_ID     applicationKeyId
-  B2_APP_KEY    applicationKey
-  B2_ACCOUNT_ID B2 账号 ID（用于公开 URL 前缀 f<accountId>）
+凭证（环境变量，切勿写进文件/仓库）：
+  B2_KEY_ID       applicationKeyId
+  B2_APP_KEY      applicationKey
+  B2_BUCKET_ID    桶 ID
+  B2_BUCKET       桶名（jinghe001）
 
 用法：
-  set B2_ENDPOINT=...   (Windows)  /  export B2_ENDPOINT=... (Linux/Mac)
+  set B2_KEY_ID=... & set B2_APP_KEY=... & set B2_BUCKET_ID=... & set B2_BUCKET=jinghe001
   python aggregate_local.py seeds
   python aggregate_local.py add https://www.bilibili.com/video/BVxxxx https://v.douyin.com/xxxx/
 """
 import os, sys, json, time, glob, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import downloader  # 复用现成的 B站/抖音下载逻辑
-
-try:
-    import boto3
-except ImportError:
-    sys.exit("缺少 boto3，请先安装：pip install boto3")
+import downloader          # 复用现成的 B站/抖音下载逻辑
+import b2_native           # 原生 B2 API（绕开 S3 锁）
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 MEDIA = os.path.join(ROOT, "media")
 SEED_JSON = os.path.join(ROOT, "videos.json")
+CLOUDFLARE = os.path.join(ROOT, "..", "cloudflare")
 
 
-def cfg():
-    need = ["B2_ENDPOINT", "B2_REGION", "B2_BUCKET", "B2_KEY_ID", "B2_APP_KEY", "B2_ACCOUNT_ID"]
-    miss = [k for k in need if not os.environ.get(k)]
-    if miss:
-        sys.exit("缺少环境变量：" + ", ".join(miss))
-    return {k: os.environ[k] for k in need}
-
-
-def client(c):
-    return boto3.client(
-        "s3",
-        endpoint_url=c["B2_ENDPOINT"],
-        region_name=c["B2_REGION"],
-        aws_access_key_id=c["B2_KEY_ID"],
-        aws_secret_access_key=c["B2_APP_KEY"],
-    )
-
-
-def b2_base(c):
-    return f"https://f{c['B2_ACCOUNT_ID']}.backblazeb2.com/file/{c['B2_BUCKET']}"
-
-
-def upload_file(cli, bucket, local_path, key):
-    cli.upload_file(local_path, bucket, key)
-    print(f"  上传完成 -> {key}")
-
-
-def load_remote_list(cli, bucket):
+def load_remote_list(api, token):
     try:
-        obj = cli.get_object(Bucket=bucket, Key="videos.json")
-        return json.loads(obj["Body"].read().decode("utf-8"))
+        return b2_native.read_json(api, "videos.json", token)
     except Exception:
-        # 远端还没有清单，用本地种子清单兜底
         if os.path.exists(SEED_JSON):
             with open(SEED_JSON, encoding="utf-8") as f:
                 return json.load(f)
         return []
 
 
-def save_remote_list(cli, bucket, lst):
-    cli.put_object(
-        Bucket=bucket,
-        Key="videos.json",
-        Body=json.dumps(lst, ensure_ascii=False, indent=2).encode("utf-8"),
-        ContentType="application/json",
+def save_remote_list(api, token, lst):
+    b2_native.upload_bytes(
+        json.dumps(lst, ensure_ascii=False, indent=2).encode("utf-8"),
+        "videos.json", api=api, content_type="application/json",
     )
 
 
-def cmd_seeds(c):
-    cli = client(c)
+def cmd_seeds():
+    api = b2_native.authorize()
     print("上传种子视频 + 封面到 B2 ...")
-    files = sorted(glob.glob(os.path.join(MEDIA, "*")))
-    for fp in files:
+    for fp in sorted(glob.glob(os.path.join(MEDIA, "*"))):
         if os.path.isfile(fp):
-            upload_file(cli, c["B2_BUCKET"], fp, os.path.basename(fp))
-    # 上传 videos.json（若存在本地种子清单，用它；否则保持远端原样）
+            key = "media/" + os.path.basename(fp)
+            b2_native.upload_file(fp, key, api=api, content_type=b2_native.content_type_for(fp))
+            print("  ✔", key)
     if os.path.exists(SEED_JSON):
-        save_remote_list(cli, c["B2_BUCKET"], json.load(open(SEED_JSON, encoding="utf-8")))
-        print("  已上传 videos.json")
-    print("种子数据上传完成。前端地址：", b2_base(c) + "/videos.json")
+        save_remote_list(api, b2_native.get_download_auth(api)["authorizationToken"], json.load(open(SEED_JSON, encoding="utf-8")))
+        print("  ✔ videos.json")
+    idx = os.path.join(CLOUDFLARE, "index.html")
+    if os.path.exists(idx):
+        b2_native.upload_file(idx, "index.html", api=api, content_type="text/html; charset=utf-8")
+        print("  ✔ index.html")
+    print("种子数据上传完成。")
 
 
-def cmd_add(c, urls):
-    cli = client(c)
-    lst = load_remote_list(cli, c["B2_BUCKET"])
+def cmd_add(urls):
+    api = b2_native.authorize()
+    token = b2_native.get_download_auth(api)["authorizationToken"]
+    lst = load_remote_list(api, token)
     added = 0
     for url in urls:
         url = url.strip()
@@ -115,11 +84,10 @@ def cmd_add(c, urls):
         except Exception as e:
             print(f"下载失败：{url} -> {e}")
             continue
-        # 上传视频 + 封面
-        upload_file(cli, c["B2_BUCKET"], out_mp4, base + ".mp4")
+        b2_native.upload_file(out_mp4, "media/" + base + ".mp4", api=api, content_type="video/mp4")
         poster_key = None
         if poster and os.path.exists(poster):
-            upload_file(cli, c["B2_BUCKET"], poster, base + ".jpg")
+            b2_native.upload_file(poster, "media/" + base + ".jpg", api=api, content_type="image/jpeg")
             poster_key = base + ".jpg"
         entry = {
             "id": base,
@@ -131,8 +99,7 @@ def cmd_add(c, urls):
             "seed": False,
         }
         lst.append(entry)
-        save_remote_list(cli, c["B2_BUCKET"], lst)
-        # 本地清理临时文件
+        save_remote_list(api, token, lst)
         try:
             os.remove(out_mp4)
             if poster and os.path.exists(poster):
@@ -141,20 +108,19 @@ def cmd_add(c, urls):
             pass
         added += 1
         print(f"已汇总并发布：{label}")
-    print(f"完成：新增 {added} 个。前端稍后刷新即可看到。")
+    print(f"完成：新增 {added} 个。前端刷新即可看到。")
 
 
 def main():
-    c = cfg()
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     cmd = sys.argv[1]
     if cmd == "seeds":
-        cmd_seeds(c)
+        cmd_seeds()
     elif cmd == "add":
         if len(sys.argv) < 3:
             sys.exit("用法：python aggregate_local.py add <url1> [url2 ...]")
-        cmd_add(c, sys.argv[2:])
+        cmd_add(sys.argv[2:])
     else:
         sys.exit("未知命令：" + cmd + "\n" + __doc__)
 
