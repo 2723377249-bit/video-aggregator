@@ -188,6 +188,16 @@
   #reqBtn{background:linear-gradient(135deg,#5b8cff,#8a5bff);border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:10px;cursor:pointer;transition:.15s;}
   #reqBtn:hover{filter:brightness(1.1);}
   #reqBtn:disabled{opacity:.6;cursor:not-allowed;}
+  /* 共享紫色渐变按钮（提交请求 / 一键归纳 用同一套） */
+  #upBtn{background:linear-gradient(135deg,#5b8cff,#8a5bff);border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:10px;cursor:pointer;transition:.15s;}
+  #upBtn:hover{filter:brightness(1.1);}
+  #upBtn:disabled{opacity:.6;cursor:not-allowed;}
+  /* 上传板块：选择文件按钮 + 标题输入 与主题统一 */
+  .up-file{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;background:linear-gradient(135deg,#5b8cff28,#8a5bff28);border:1px dashed #7a8cff80;border-radius:10px;color:#cfd8ec;padding:14px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;margin-bottom:10px;}
+  .up-file:hover{background:linear-gradient(135deg,#5b8cff45,#8a5bff45);border-color:#8a5bff;border-style:solid;color:#fff;}
+  .up-file::file-selector-button{display:none;}
+  .up-title{width:100%;box-sizing:border-box;background:#0e1320;border:1px solid #3a3f5a;border-radius:10px;color:#e8ecf5;padding:10px 12px;font-size:13px;margin-bottom:10px;outline:none;transition:.15s;}
+  .up-title:focus{border-color:#7a8cff;background:#11182b;}
   #reqStatus{font-size:13px;color:#9fe6c0;min-width:120px;}
   #reqStatus.warn{color:#ffb86c;}
   #reqStatus.err{color:#ff7b7b;}
@@ -227,8 +237,8 @@
     选择本地已下载的 mp4 视频（可多选，单个不超过 80MB），可填标题（可选），点击「一键归纳」上传。<br>
     <span style="color:#9fe6c0">上传成功后视频会<b>立刻出现在下方「网址汇总」中，所有人刷新页面即可在线播放</b>，永久保存。</span>
   </p>
-  <input type="file" id="upInput" class="up-input" accept="video/mp4,.mp4" multiple>
-  <input type="text" id="upTitle" class="up-input" placeholder="标题（可选，留空则用文件名）">
+  <input type="file" id="upInput" class="up-file" accept="video/mp4,.mp4" multiple>
+  <input type="text" id="upTitle" class="up-title" placeholder="标题（可选，留空则用文件名）">
   <div class="req-actions">
     <button id="upBtn">📤 一键归纳</button>
     <span id="upStatus"></span>
